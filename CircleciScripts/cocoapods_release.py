@@ -25,17 +25,6 @@ def execute_command_and_wait(commands):
             continue
         break
 
-        exit_code = process.wait()
-        if exit_code != 0:
-            if 'Unable to accept duplicate entry for:' in str(output):
-                log(f'{package} is already published')
-            else:
-                log(f'Output: {output}')
-                log(f'Error: {err}')
-                log(f'Exit code: {exit_code}')
-                log(f'Failed to publish {package}')
-                quit(exit_code)
-
 # Start the CocoaPods publishing...
 
 # Wait time between each framework group publishing, so dependencies are resolved correctly
@@ -45,9 +34,7 @@ COCOAPODS_PUSH_WAIT_TIME = 600
 log('Publishing cocoapods')
 
 number_of_groups = len(grouped_frameworks)
-current_group = 0
-
-for frameworks in grouped_frameworks:
+for current_group, frameworks in enumerate(grouped_frameworks):
     for package in frameworks:
         log(f'Publishing {package}')
 
@@ -57,4 +44,3 @@ for frameworks in grouped_frameworks:
         # Wait until the packages
         log('Waiting for packages to reach Trunk...')
         time.sleep(COCOAPODS_PUSH_WAIT_TIME)
-    current_group += 1

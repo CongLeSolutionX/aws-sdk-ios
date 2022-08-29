@@ -9,33 +9,32 @@ from functions import runcommand
 #from sets import Set
 def getfailedcases(withBundle = True):   
     xmlfile='build/reports/junit.xml'
-    tree = ET.parse(xmlfile) 
-    root = tree.getroot() 
+    tree = ET.parse(xmlfile)
+    root = tree.getroot()
     testbundle = root.get('name')
-    testbundle = testbundle[0:len(testbundle) - 7]
+    testbundle = testbundle[:len(testbundle) - 7]
 
     failedtests = set()
 
-    #TODO  we can filter with condtion 
+    #TODO  we can filter with condtion
     for testsuite in root.findall(".//testsuite"):  
         for testcase in testsuite.findall('.//testcase[failure]'): 
             suitename = testsuite.get('name')
             casename = testcase.get('name')
             if withBundle: 
-                failedtests.add(testbundle + '/' + suitename + '/' + casename)
+                failedtests.add(f'{testbundle}/{suitename}/{casename}')
             else:
-                failedtests.add(suitename + '/' + casename)
+                failedtests.add(f'{suitename}/{casename}')
 
     return failedtests 
  #run test   
 def runtest(otherargments, projectPath, schemeName, projectName, destination, derivedDataPath, timeout = 0):
     runcommand("rm raw.log")
     runcommand("rm xcpretty.log")
-    testcommand = "xcodebuild   test-without-building  -project {0} -scheme {1} -sdk iphonesimulator -destination '{2}'  -derivedDataPath  {3}/{4}".format(projectPath,schemeName, destination, derivedDataPath, projectName) 
-    testcommand +=" " +  otherargments;
-    rawoutput = open('raw.log','w')
-    exit_code = runcommand(testcommand,timeout, pipeout = rawoutput)
-    rawoutput.close()
+    testcommand = "xcodebuild   test-without-building  -project {0} -scheme {1} -sdk iphonesimulator -destination '{2}'  -derivedDataPath  {3}/{4}".format(projectPath,schemeName, destination, derivedDataPath, projectName)
+    testcommand += f" {otherargments}";
+    with open('raw.log','w') as rawoutput:
+        exit_code = runcommand(testcommand,timeout, pipeout = rawoutput)
     print("Formatting test result .......")
     xcprettycommand = "cat raw.log | xcpretty -r junit  | tee xcpretty.log"
     runcommand(xcprettycommand)
@@ -44,7 +43,7 @@ def runtest(otherargments, projectPath, schemeName, projectName, destination, de
 ##########################  main function ###############################
 # a command will like 
 
-if (len(sys.argv) < 3 or sys.argv[1] == '-h' or sys.argv[1] == '-h') : 
+if len(sys.argv) < 3 or sys.argv[1] == '-h': 
     print("Usage: \r\n {0} <integrationTestsConfiguration json file path> <test result location> <group name>".format(sys.argv[0])) ;
     exit(1)
 
@@ -64,7 +63,7 @@ projectName = runningConfigure['projectName']
 projectPath = runningConfigure['projectPath']
 schemeName = runningConfigure['schemeName']
 sdkName = runningConfigure['sdkName']
- 
+
 
 print("group name:", group_name)
 testgroup = testConfigure[group_name]
@@ -84,14 +83,14 @@ testresult = 0
 for testname in testlist:
 
     print("-------------------------------", testname , "-------------------------------");
-    
+
     test = testlist[testname]
-    testarguments = ' -only-testing:' + testname
+    testarguments = f' -only-testing:{testname}'
     #create skipping tests parameters 
     skipingtests = ""
     if 'excludetests' in test:
         for skipingtest in test['excludetests']:
-            skipingtests += ' -skip-testing:' + testname+ "/" + skipingtest
+            skipingtests += f' -skip-testing:{testname}/{skipingtest}'
         print("excludetests:", skipingtests)
     exit_code = runtest(testarguments + skipingtests, projectPath, schemeName, projectName, destination, derivedDataPath)
     print(testname, "exit code:", exit_code)
@@ -112,12 +111,10 @@ for testname in testlist:
             print('retriabletimes:', retriabletimes)
             while retrytimes <= retriabletimes  and exit_code > 0:
                 print("retry ", testname, "for ", retrytimes, " times")
-                testarguments = ""
-                for failed in faileds:
-                    testarguments += ' -only-testing:' + failed
+                testarguments = "".join(f' -only-testing:{failed}' for failed in faileds)
                 retrytimes += 1
                 exit_code = runtest(testarguments,projectPath, schemeName, projectName, destination, derivedDataPath);
-                print("retry exit code:", exit_code)                
+                print("retry exit code:", exit_code)
                 if(exit_code != 0 ):
                     faileds = getfailedcases()
 
@@ -142,10 +139,10 @@ for testname in testlist:
         if not ignorefailure: 
             print("There are faillures in the test")
             testresult = 1
-            
+
     else:
         print("Test succeed")
- 
+
 print("testresult:", testresult)
 runcommand('echo "export testresult={0}" >> $BASH_ENV'.format(testresult))  
 

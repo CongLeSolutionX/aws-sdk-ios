@@ -29,12 +29,12 @@ projecttypes = [
 "Objective-C",
 "Swift"
 ]
-exitcode = 0 
+exitcode = 0
 for project in projects:
     for projecttype in projecttypes:
         projectfolder = os.path.join(root, project, projecttype)
         if os.path.isdir(projectfolder):
-            workspaces = glob.glob(projectfolder + "/*.xcworkspace")
+            workspaces = glob.glob(f"{projectfolder}/*.xcworkspace")
             for workspace in workspaces:
                 scheme = os.path.splitext(ntpath.basename(workspace))[0]               
                 rn = buildproject(projectfolder, workspace, scheme)

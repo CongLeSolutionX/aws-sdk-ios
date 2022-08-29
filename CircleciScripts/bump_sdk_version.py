@@ -14,16 +14,14 @@ def bump_plist(filename, newsdkversion):
     for child in dictnode:
         if child.tag == 'key' and child.text == 'CFBundleShortVersionString':
             setversion = True
-        else:
-            if setversion:
-                print("old version:", child.text)
-                child.text=newsdkversion
-                break
+        elif setversion:
+            print("old version:", child.text)
+            child.text=newsdkversion
+            break
 
     plist_string = format_plist(tree)
-    plist = open(filename, "w")
-    plist.write(plist_string)
-    plist.close()
+    with open(filename, "w") as plist:
+        plist.write(plist_string)
 
 # Adjusts lxml's pretty-printed XML format to match Xcode's default and avoid
 # semantically uninteresting diffs
@@ -47,8 +45,7 @@ def format_plist(tree):
 
 def tree_to_string(tree):
     plist_bytes = etree.tostring(tree, pretty_print = True, xml_declaration = False, encoding='UTF-8')
-    plist_string = plist_bytes.decode('utf-8')
-    return plist_string
+    return plist_bytes.decode('utf-8')
 
 
 root = sys.argv[1]
@@ -155,17 +152,15 @@ service_pattern["files"].append("AWSPinpoint/AWSPinpointTargeting/AWSPinpointTar
 
 replaces = [
     {
-        # "enclosemark" : "double",
-        "match" : r'VERSION="[0-9]+\.[0-9]+\.[0-9]+"', 
-        "replace" : r'VERSION="[version]"',
-        "files" : [
-            'CircleciScripts/generate_documentation.sh'
-        ]
-    }
+        "match": r'VERSION="[0-9]+\.[0-9]+\.[0-9]+"',
+        "replace": r'VERSION="[version]"',
+        "files": ['CircleciScripts/generate_documentation.sh'],
+    },
+    podspec_pattern1,
+    podspec_pattern2,
+    service_pattern,
 ]
-replaces.append(podspec_pattern1)
-replaces.append(podspec_pattern2)
-replaces.append(service_pattern)
+
 for replaceaction in replaces:
     replaceaction["replace"] = replaceaction["replace"].replace("[version]", newsdkversion)
 replacefiles(root, replaces)
